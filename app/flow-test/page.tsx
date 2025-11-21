@@ -42,12 +42,8 @@ export default function FlowTestPage() {
       testResults.push(data);
       traceparent = data.nextTraceparent;
 
-      // Delay between steps if testing delayed mode
-      if (testMode === 'delayed') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      // Delay between steps
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Step 2: Basket GET
       console.log('🛒 Calling basket get...');
@@ -58,11 +54,7 @@ export default function FlowTestPage() {
       testResults.push(data);
       traceparent = data.nextTraceparent;
 
-      if (testMode === 'delayed') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Step 3: Basket ADD
       console.log('➕ Calling basket add...');
@@ -73,10 +65,10 @@ export default function FlowTestPage() {
       testResults.push(data);
       traceparent = data.nextTraceparent;
 
-      // Big delay before final request to force cold start
+      // Delay before final request based on test mode
       if (testMode === 'delayed') {
-        setSummary('⏳ Waiting 45 seconds to force Lambda cold start...');
-        await new Promise(resolve => setTimeout(resolve, 45000));
+        setSummary('⏳ Waiting 10 seconds to encourage Lambda cold start...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
       } else {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -174,105 +166,100 @@ export default function FlowTestPage() {
   };
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'monospace' }}>
-      <h1 style={{ marginBottom: '20px' }}>🧪 OpenTelemetry Context Flow Test</h1>
-      
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-        <h2 style={{ marginTop: 0 }}>Test Configuration</h2>
-        <p>This test simulates a user flow with trace context propagation:</p>
-        <ol>
-          <li>Product Page (initial trace from browser)</li>
-          <li>Basket GET</li>
-          <li>Basket ADD</li>
-          <li>Basket VIEW (with optional delay)</li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-8 flex items-center gap-3">
+          🧪 OpenTelemetry Context Flow Test
+        </h1>
         
-        <div style={{ marginTop: '20px' }}>
-          <label style={{ marginRight: '20px' }}>
-            <input
-              type="radio"
-              value="rapid"
-              checked={testMode === 'rapid'}
-              onChange={(e) => setTestMode(e.target.value as 'rapid' | 'delayed')}
-              disabled={isRunning}
-            />
-            <span style={{ marginLeft: '8px' }}>Rapid Mode (0.5s delays)</span>
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="delayed"
-              checked={testMode === 'delayed'}
-              onChange={(e) => setTestMode(e.target.value as 'rapid' | 'delayed')}
-              disabled={isRunning}
-            />
-            <span style={{ marginLeft: '8px' }}>Delayed Mode (45s before final request to force cold start)</span>
-          </label>
+        <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Test Configuration</h2>
+          <p className="text-gray-600 mb-4">This test simulates a user flow with trace context propagation:</p>
+          <ol className="list-decimal list-inside text-gray-700 mb-6 space-y-1">
+            <li>Product Page (initial trace from browser)</li>
+            <li>Basket GET</li>
+            <li>Basket ADD</li>
+            <li>Basket VIEW (with optional delay)</li>
+          </ol>
+          
+          <div className="space-y-3 mb-6">
+            <label className="flex items-center space-x-3 text-gray-700">
+              <input
+                type="radio"
+                value="rapid"
+                checked={testMode === 'rapid'}
+                onChange={(e) => setTestMode(e.target.value as 'rapid' | 'delayed')}
+                disabled={isRunning}
+                className="w-4 h-4"
+              />
+              <span>Rapid Mode (0.5s delays between requests)</span>
+            </label>
+            <label className="flex items-center space-x-3 text-gray-700">
+              <input
+                type="radio"
+                value="delayed"
+                checked={testMode === 'delayed'}
+                onChange={(e) => setTestMode(e.target.value as 'rapid' | 'delayed')}
+                disabled={isRunning}
+                className="w-4 h-4"
+              />
+              <span>Delayed Mode (10s before final request to encourage cold start)</span>
+            </label>
+          </div>
+          
+          <button
+            onClick={runTest}
+            disabled={isRunning}
+            className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
+              isRunning 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+            }`}
+          >
+            {isRunning ? '⏳ Running Test...' : '▶️ Run Test'}
+          </button>
         </div>
-        
-        <button
-          onClick={runTest}
-          disabled={isRunning}
-          style={{
-            marginTop: '20px',
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: isRunning ? '#ccc' : '#0070f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: isRunning ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {isRunning ? '⏳ Running Test...' : '▶️ Run Test'}
-        </button>
+
+        {results.length > 0 && (
+          <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Step-by-Step Results</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="px-4 py-3 text-left border text-gray-700 font-semibold">Step</th>
+                    <th className="px-4 py-3 text-left border text-gray-700 font-semibold">Route</th>
+                    <th className="px-4 py-3 text-left border text-gray-700 font-semibold">Trace ID</th>
+                    <th className="px-4 py-3 text-left border text-gray-700 font-semibold">PID</th>
+                    <th className="px-4 py-3 text-left border text-gray-700 font-semibold">Extracted?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((result, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 border text-gray-800">{idx + 1}</td>
+                      <td className="px-4 py-3 border text-gray-800">{result.route}</td>
+                      <td className="px-4 py-3 border text-gray-800 font-mono text-xs break-all">
+                        {result.activeTraceId}
+                      </td>
+                      <td className="px-4 py-3 border text-gray-800">{result.pid}</td>
+                      <td className="px-4 py-3 border text-gray-800">
+                        {result.contextExtracted ? '✅ Yes' : '❌ No'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {summary && (
+          <div className="bg-gray-900 rounded-lg shadow-xl p-6 text-green-400 font-mono text-sm whitespace-pre-wrap">
+            {summary}
+          </div>
+        )}
       </div>
-
-      {results.length > 0 && (
-        <div style={{ marginBottom: '30px' }}>
-          <h2>Step-by-Step Results</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f0f0f0' }}>
-                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>Step</th>
-                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>Route</th>
-                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>Trace ID</th>
-                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>PID</th>
-                <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #ddd' }}>Extracted?</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((result, idx) => (
-                <tr key={idx}>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>{idx + 1}</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>{result.route}</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd', fontFamily: 'monospace', fontSize: '12px' }}>
-                    {result.activeTraceId}
-                  </td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>{result.pid}</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>
-                    {result.contextExtracted ? '✅ Yes' : '❌ No'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {summary && (
-        <div style={{ 
-          padding: '20px', 
-          backgroundColor: '#f9f9f9', 
-          borderRadius: '8px',
-          border: '2px solid #333',
-          whiteSpace: 'pre-wrap',
-          fontFamily: 'monospace',
-          fontSize: '14px',
-        }}>
-          {summary}
-        </div>
-      )}
     </div>
   );
 }
